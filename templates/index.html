@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>絵から音楽生成</title>
+    <link href="/static/css/style.css" rel="stylesheet" type="text/css" media="all">
+</head>
+<body>
+    <div id="main">
+
+        <canvas id="cv" width="970px" height="484px"></canvas>
+    
+        <div id="ctrl">
+        
+            <!-- 「線の太さ」ボタン群 -->
+            <!--<span class="wds cur" wd="1"><span id="w1"></span></span>
+            <span class="wds" wd="2"><span id="w2"></span></span>
+            <span class="wds" wd="3"><span id="w3"></span></span>
+            <span class="wds" wd="4"><span id="w4"></span></span>
+            <span class="wds" wd="5"><span id="w5"></span></span>
+            <span class="wds" wd="6"><span id="w6"></span></span>
+            <span class="wds" wd="7"><span id="w7"></span></span>
+            <span class="wds" wd="8"><span id="w8"></span></span>
+            <span class="wds" wd="9"><span id="w9"></span></span>
+            <span class="wds" wd="10"><span id="w10"></span></span>
+            <span class="wds" wd="11"><span id="w11"></span></span>
+            <span class="wds" wd="12"><span id="w12"></span></span>
+            <span class="wds" wd="13"><span id="w13"></span></span> -->
+        
+            <!-- 「線の太さ」選択枠 -->
+            <input type="number" id="width" min="1" value="1"><br>
+        
+            <!-- 「線の色」ボタン群 -->
+           <!--<span class="cls cur" cl="#000"><span id="c1"></span></span>
+            <span class="cls" cl="#fff"><span id="c2"></span></span>
+            <span class="cls" cl="#f00"><span id="c3"></span></span>
+            <span class="cls" cl="#080"><span id="c4"></span></span>
+            <span class="cls" cl="#00f"><span id="c5"></span></span>
+            <span class="cls" cl="#800"><span id="c6"></span></span>
+            <span class="cls" cl="#fd0"><span id="c7"></span></span>
+            <span class="cls" cl="#fcc"><span id="c8"></span></span>
+            <span class="cls" cl="#888"><span id="c9"></span></span>
+            <span class="cls" cl="#000"><span id="c10"></span></span>  -->
+        
+            <!-- 「線の色」選択枠 -->
+            <input type="color" id="color" value="#ffffff">
+        
+            <input type="button" id="cr" value="クリア">
+    
+        </div>
+    </div>
+
+    <script>
+        var w= false;
+        var canvas = document.getElementById('cv');
+        var context = canvas.getContext('2d');
+        context.strokeStyle = 'white';
+         var wStart = function(e){
+
+           /* スマホで画面がずれないように */
+           e.preventDefault();
+
+           /* 描画モードに */
+           w = true;
+           context.beginPath();
+
+           /* スマホ、タブレット以外 */
+           if (typeof e.touches=='undefined') {
+
+               context.moveTo(e.offsetX, e.offsetY);
+
+             /* スマホ、タブレット */
+            }else{
+
+                var t = e.touches[0];
+
+                /* 描画位置のズレを修正 */
+                context.moveTo(t.pageX-left, t.pageY-top);
+            }
+        }
+        /* マウス押下時 */
+        cv.onmousedown = wStart;
+        /* タッチ開始時 */
+        cv.ontouchstart = wStart
+        /* ラインを描画 */
+var wLine = function(e){
+
+/* 描画モードの時 */
+if (w) {
+
+    /* スマホ、タブレット以外 */
+    if (typeof e.touches=='undefined') {
+
+        context.lineTo(e.offsetX, e.offsetY);
+
+    /* スマホ、タブレット */
+    }else{
+
+        var t = e.touches[0];
+
+        /* 描画位置のズレを修正 */
+        context.lineTo(t.pageX-left, t.pageY-top);
+    }
+    context.stroke();
+}
+}
+/* マウス移動時 */
+cv.onmousemove = wLine;
+/* タッチ移動時 */
+cv.ontouchmove = wLine;
+
+/* 描画の終了 */
+var wStop = function(){
+
+w = false;
+
+/*sendする*/
+var dataURL = canvas.toDataURL('image/png');
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload_canvas', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    console.log('Canvas sent successfully');
+                }
+            };
+            xhr.send(JSON.stringify({ image: dataURL }));
+
+}
+/* マウスボタンを離した時 */
+cv.onmouseup = wStop;
+/* タッチ終了時 */
+cv.ontouchend = wStop;
+
+/* クリアボタン押下時 */
+cr.onclick = function(){
+context.clearRect(0, 0, cv.width, cv.height);
+
+/*クリアが押されたとき検知*/
+fetch('/button-clicked', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({clicked: true})
+            })
+            .then(response => response.json())
+            .then(data => console.log(data))
+            .catch(error => console.error('Error:', error));
+}
+
+/* 選択を未選択状態に */
+var clearCs = function(cs,def){
+
+for(var i=0,len=cs.length;i<len;i++){
+
+    cs[i].setAttribute('class',def);
+}
+}
+
+/* 線の太さ入力欄に変更があった時	 */
+width.onchange = function(){
+
+/*clearCs(wds,'wds');*/
+context.lineWidth = this.value;
+this.setAttribute('class','cur');
+}
+
+/* 色ウィンドウから選択された時 */
+color.onchange = function(){
+
+/* 選択した色を保存するボタン */
+/*var p10 = c10.parentNode;*/
+
+/*clearCs(cls,'cls');*/
+context.strokeStyle = color.value;
+/*c10.style.background = color.value;
+p10.setAttribute('cl',color.value);
+p10.setAttribute('class','cls cur');*/
+}
+
+/* 線選択枠のクリックイベントの登録 */
+for(var i=0,len=wds.length;i<len;i++){
+
+wds[i].onclick = function(){
+
+    /* 線の太さ入力欄の選択状態を解除 */
+    wd.removeAttribute('class');
+
+    clearCs(wds,'wds');
+    context.lineWidth = this.getAttribute('wd');
+    this.setAttribute('class','wds cur');
+}
+} 
+
+
+/* 色選択枠のクリックイベントの登録 */
+for(var i=0,len=cls.length;i<len;i++){
+
+cls[i].onclick = function(){
+
+    clearCs(cls,'cls');
+    context.strokeStyle = this.getAttribute('cl');
+    this.setAttribute('class','cls cur');
+}
+}
+
+        /*function sendCanvas() {
+            var dataURL = canvas.toDataURL('image/png');
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload_canvas', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    console.log('Canvas sent successfully');
+                }
+            };
+            xhr.send(JSON.stringify({ image: dataURL }));
+        }*/
+
+    </script>
+</body>
+</html>
